@@ -1,0 +1,110 @@
+#!/usr/bin/env bash
+
+# NAME
+#   gifcap -- record video of an Android device and make a gif out of it
+#
+# SYNOPSIS
+#   gifcap [output]
+#
+# DESCRIPTION
+#   Does what it says on the tin.  If no output filename is given, 'output.gif' is used.
+#
+#   On invocation, screen capture will begin.  Script execution will block until
+#   SIGINT is received (i.e., CTRL+C), which ends video recording.
+#
+#   Note that this script only works on physical devices - emulators typically don't
+#   have the requisite screenrecord binary.
+#
+# REQUIREMENTS
+#   adb - Android Debug Bridge, needed for communication
+#   ffmpeg - Needed for converting between video and gif
+#   ffprobe - Used to glean info about video.  Usually bundled with ffmpeg, e.g. via Homebrew.
+#
+#   If you are using Homebrew, individual codecs need to be included at install time:
+#   `brew install ffmpeg --with-fdk-aac --with-ffplay --with-freetype --with-libass --with-libquvi --with-libvorbis --with-libvpx --with-opus --with-x265`
+#
+# USAGE
+#   <plug in device>
+#   gifcap [filename]
+#   <do stuff on device>
+#   <ctrl+c> to stop recording
+#
+# LICENSE
+#   The MIT License (MIT)
+#   Copyright (c) <year> <copyright holders>
+#
+#   Permission is hereby granted, free of charge, to any person obtaining a copy of this software
+#   and associated documentation files (the "Software"), to deal in the Software without restriction,
+#   including without limitation the rights to use, copy, modify, merge, publish, distribute,
+#   sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is
+#   furnished to do so, subject to the following conditions:
+#
+#   The above copyright notice and this permission notice shall be included in all copies or
+#   substantial portions of the Software.
+#
+#   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING
+#   BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+#   NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+#   DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+#   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+function require() {
+  type $1 &>/dev/null || { echo >&2 "I require $1 to be installed and in your PATH.  Aborting."; exit 1; }
+}
+
+# Given foo.bar, creates a tempfile named foo.XXXXX.bar, where Xs are random.
+# The file will be created inside of TMPDIR.
+function better_mktemp() {
+  ARG="$1"
+  FILENAME=${ARG%.*}
+  EXT=${ARG##*.}
+
+  FILE=`mktemp -t ${FILENAME} || exit 1`
+  mv ${FILE} "$FILE.$EXT" || exit 1
+  echo "$FILE.$EXT"
+}
+
+require adb
+require ffmpeg
+require ffprobe
+
+OUTPUT="output.gif"
+if [ ! -z "$1" ]; then
+  OUTPUT="$1"
+fi
+
+# Do all work in a temp directory that is deleted on script exit.
+MY_TMPDIR=`mktemp -d gifcap.XXXXX || exit 1`
+trap "rm -rf ${MY_TMPDIR}" EXIT
+
+SCREENCAP=`TMPDIR=${MY_TMPDIR} better_mktemp screencap.mp4`
+PALETTE=`TMPDIR=${MY_TMPDIR} better_mktemp palette.png`
+
+ADB_SCREENCAP_PATH="/sdcard/$(basename ${SCREENCAP})"
+
+echo "Recording, end with CTRL+C"
+trap "echo 'Recording stopped.  Converting...'" INT
+adb shell screenrecord ${ADB_SCREENCAP_PATH}
+trap - INT
+
+# It takes non-zero time for the device to finish writing the video file.
+# Wait, then pull.
+
+sleep 5 # determined by science
+
+adb pull ${ADB_SCREENCAP_PATH} ${SCREENCAP}
+adb shell rm -f ${ADB_SCREENCAP_PATH}
+
+# Grab the length of the video in seconds
+
+# Determine an appropriate color palette for the video
+DURATION=$( ffprobe ${SCREENCAP} -show_format 2>/dev/null | awk -F '=' '/^duration/ { print $2}' )
+INPUT_FLAGS="-y -ss 0 -t ${DURATION} -i ${SCREENCAP}"
+VF_FLAGS="fps=30,scale=320:-1:flags=lanczos,palettegen"
+ffmpeg ${INPUT_FLAGS} -vf ${VF_FLAGS} ${PALETTE} &>/dev/null
+
+# Using the palette, convert the video to a gif.
+FILTER="fps=30,scale=320:-1:flags=lanczos[x];[x][1:v]"
+PALETTEUSE="paletteuse=dither=bayer:bayer_scale=4"
+FILTER_COMPLEX="$FILTER$PALETTEUSE"
+ffmpeg ${INPUT_FLAGS} -i ${PALETTE} -filter_complex "$FILTER_COMPLEX" "$OUTPUT" &>/dev/null
