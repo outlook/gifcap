@@ -8,12 +8,6 @@ GIFs with a single command.
 
 ### Install
 
-OSX:
-```bash
-brew install gifcap
-```
-
-Others:
 Ensure `adb`, `ffmpeg`, and `ffprobe` are on your $PATH.  Also make sure that your console window is
 capable of executing `bash`.
 
