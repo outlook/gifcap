@@ -11,7 +11,9 @@ GIFs with a single command.
 Ensure `adb`, `ffmpeg`, and `ffprobe` are on your $PATH.  Also make sure that your console window is
 capable of executing `bash`.
 
-Copy `gifcap.sh` and place it somewhere on your $PATH.
+On OS X, you can install the latter two via Homebrew: `brew install ffmpeg`
+
+Copy `gifcap` and place it somewhere on your $PATH.
 
 -------
 
