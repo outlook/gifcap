@@ -19,5 +19,7 @@ capable of executing `bash`.
 
 Copy `gifcap.sh` and place it somewhere on your $PATH.
 
-Copyright 2016 Microsoft Corporation
+-------
+
+Copyright © Microsoft Corporation
 
