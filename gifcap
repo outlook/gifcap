@@ -58,7 +58,7 @@ function require() {
 # The file will be created inside of TMPDIR.
 function better_mktemp() {
   ARG="$1"
-  FILENAME=${ARG%.*}
+  FILENAME=${ARG%.*}XXX
   EXT=${ARG##*.}
 
   FILE=`mktemp -t ${FILENAME} || exit 1`
