@@ -50,6 +50,8 @@
 #     <do stuff on device>
 #     <ctrl+c> to stop recording
 
+set -eu
+
 function require() {
   type $1 &>/dev/null || { echo >&2 "I require $1 to be installed and in your PATH.  Aborting."; exit 1; }
 }
@@ -70,7 +72,7 @@ require adb
 require ffmpeg
 require ffprobe
 
-if [ "$1" = "--help" ]; then
+if [ "${1-}" = "--help" ]; then
   cat <<- "EOF"
 usage: gifcap [output]
 
@@ -84,7 +86,7 @@ EOF
 fi
 
 OUTPUT="output.gif"
-if [ ! -z "$1" ]; then
+if [ ! -z "${1-}" ]; then
   OUTPUT="$1"
 fi
 
@@ -99,7 +101,12 @@ ADB_SCREENCAP_PATH="/sdcard/$(basename ${SCREENCAP})"
 
 echo "Recording, end with CTRL+C"
 trap "echo 'Recording stopped.  Converting...'" INT
+
+# adb shell screenrecord returns non-zero on success
+set +e
 adb shell screenrecord ${ADB_SCREENCAP_PATH}
+set -e
+
 trap - INT
 
 # It takes non-zero time for the device to finish writing the video file.
@@ -111,9 +118,9 @@ adb pull ${ADB_SCREENCAP_PATH} ${SCREENCAP}
 adb shell rm -f ${ADB_SCREENCAP_PATH}
 
 # Grab the length of the video in seconds
+DURATION=$( ffprobe ${SCREENCAP} -show_format 2>/dev/null | awk -F '=' '/^duration/ { print $2}' )
 
 # Determine an appropriate color palette for the video
-DURATION=$( ffprobe ${SCREENCAP} -show_format 2>/dev/null | awk -F '=' '/^duration/ { print $2}' )
 INPUT_FLAGS="-y -ss 0 -t ${DURATION} -i ${SCREENCAP}"
 VF_FLAGS="fps=30,scale=320:-1:flags=lanczos,palettegen"
 ffmpeg ${INPUT_FLAGS} -vf ${VF_FLAGS} ${PALETTE} &>/dev/null
