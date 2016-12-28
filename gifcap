@@ -52,20 +52,28 @@
 
 set -eu
 
+function die() {
+  echo >&2 "$1"
+  exit 1
+}
+
 function require() {
-  type $1 &>/dev/null || { echo >&2 "I require $1 to be installed and in your PATH.  Aborting."; exit 1; }
+  type $1 &>/dev/null || die "I require $1 to be installed and in your PATH.  Aborting."
 }
 
 # Given foo.bar, creates a tempfile named foo.XXXXX.bar, where Xs are random.
 # The file will be created inside of TMPDIR.
 function better_mktemp() {
   ARG="$1"
-  FILENAME=${ARG%.*}XXX
+  FILENAME=${ARG%.*}.XXX
   EXT=${ARG##*.}
 
-  FILE=`mktemp -t ${FILENAME} || exit 1`
-  mv ${FILE} "$FILE.$EXT" || exit 1
-  echo "$FILE.$EXT"
+  FILE=`mktemp -t ${FILENAME}` || die "Failed to create temp file: $ARG"
+
+  DEST="$FILE.$EXT"
+  mv ${FILE} "$DEST" || die "Failed to rename temp file '$ARG' to '$DEST'"
+
+  echo "$DEST"
 }
 
 require adb
@@ -91,7 +99,7 @@ if [ ! -z "${1-}" ]; then
 fi
 
 # Do all work in a temp directory that is deleted on script exit.
-MY_TMPDIR=`mktemp -d gifcap.XXXXX || exit 1`
+MY_TMPDIR=`mktemp -d gifcap.XXXXX` || die "Failed to create a temporary working directory, aborting"
 trap "rm -rf ${MY_TMPDIR}" EXIT
 
 SCREENCAP=`TMPDIR=${MY_TMPDIR} better_mktemp screencap.mp4`
