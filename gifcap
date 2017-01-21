@@ -86,7 +86,7 @@ positional arguments:
   output - the output filename; defaults to output.gif
 
 EOF
-  exit 1
+  exit 0
 fi
 
 require adb
