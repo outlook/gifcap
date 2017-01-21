@@ -76,10 +76,6 @@ function better_mktemp() {
   echo "$DEST"
 }
 
-require adb
-require ffmpeg
-require ffprobe
-
 if [ "${1-}" = "--help" ]; then
   cat <<- "EOF"
 usage: gifcap [output]
@@ -92,6 +88,10 @@ positional arguments:
 EOF
   exit 1
 fi
+
+require adb
+require ffmpeg
+require ffprobe
 
 OUTPUT="output.gif"
 if [ ! -z "${1-}" ]; then
