@@ -8,7 +8,7 @@ GIFs with a single command.
 
 ### Usage
 
-```
+```bash
 gifcap your_file_name.gif
 <CTRL+C to stop recording>
 ```
@@ -17,10 +17,22 @@ Note: you'll need an actual Android device plugged in - emulators don't generall
 
 ### Install
 
+#### macOS
+
+```bash
+brew install gifcap
+```
+
+Note that we assume you have `adb` on your path.  If you don't have an Android SDK, and want Homebrew to set it up for you:
+
+```bash
+brew install gifcap --with-android-sdk
+```
+
+#### Others
+
 Ensure `adb`, `ffmpeg`, and `ffprobe` are on your $PATH.  Also make sure that your console window is
 capable of executing `bash`.
-
-On OS X, you can install the latter two via Homebrew: `brew install ffmpeg`
 
 Copy `gifcap` and place it somewhere on your $PATH.
 
