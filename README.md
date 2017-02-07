@@ -6,6 +6,12 @@ A picture is worth 1,000 words - and, when prototyping animations, recording vis
 worth far more.  This script makes it easy to capture and share subtle app behavior by producing ready-to-paste-in-Slack
 GIFs with a single command.
 
+<div align="center">
+  <img src="web/example.gif" alt="An animated GIF showing an Android app opening" />
+  <br />
+  <em>Example output</em>
+</div>
+
 ### Usage
 
 ```bash
