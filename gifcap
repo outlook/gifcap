@@ -112,7 +112,7 @@ trap "echo 'Recording stopped.  Converting...'" INT
 
 # adb shell screenrecord returns non-zero on success
 set +e
-adb shell screenrecord ${ADB_SCREENCAP_PATH}
+adb -d shell screenrecord ${ADB_SCREENCAP_PATH}
 set -e
 
 trap - INT
@@ -122,8 +122,8 @@ trap - INT
 
 sleep 5 # determined by science
 
-adb pull ${ADB_SCREENCAP_PATH} ${SCREENCAP}
-adb shell rm -f ${ADB_SCREENCAP_PATH}
+adb -d pull ${ADB_SCREENCAP_PATH} ${SCREENCAP}
+adb -d shell rm -f ${ADB_SCREENCAP_PATH}
 
 # Grab the length of the video in seconds
 DURATION=$( ffprobe ${SCREENCAP} -show_format 2>/dev/null | awk -F '=' '/^duration/ { print $2}' )
