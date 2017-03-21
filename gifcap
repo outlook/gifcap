@@ -76,18 +76,47 @@ function better_mktemp() {
   echo "$DEST"
 }
 
-if [ "${1-}" = "--help" ]; then
+function print_help() {
   cat <<- "EOF"
-usage: gifcap [output]
+usage: gifcap [options...] [output]
 
 Record video from an Android device and make a gif out of it
 
+options:
+  -s <specific device> - directs command to the device with the given serial
+                         number or qualifier. Override ANDROID_SERIAL env
+                         variable.
+  -h, --help           - show this help message
 positional arguments:
   output - the output filename; defaults to output.gif
 
 EOF
   exit 0
-fi
+}
+
+# Default adb command, which may get extra adb args
+ADB="adb"
+
+# Parse optional arguments
+OPTIND=1
+while getopts "s:h-:" opt; do
+  case "$opt" in
+    s) # -s: pass thru device serial to adb command
+        ADB="adb -s $OPTARG"
+        ;;
+    h) # -h: short opt for help
+        print_help
+        ;;
+    -) # long opts e.g. --help
+        case "$OPTARG" in
+          help) # --help: long opt for help
+            print_help
+            ;;
+        esac
+        ;;
+  esac
+done
+shift "$((OPTIND-1))"
 
 require adb
 require ffmpeg
@@ -112,7 +141,7 @@ trap "echo 'Recording stopped.  Converting...'" INT
 
 # adb shell screenrecord returns non-zero on success
 set +e
-adb -d shell screenrecord ${ADB_SCREENCAP_PATH}
+$ADB -d shell screenrecord ${ADB_SCREENCAP_PATH}
 set -e
 
 trap - INT
@@ -122,8 +151,8 @@ trap - INT
 
 sleep 5 # determined by science
 
-adb -d pull ${ADB_SCREENCAP_PATH} ${SCREENCAP}
-adb -d shell rm -f ${ADB_SCREENCAP_PATH}
+$ADB -d pull ${ADB_SCREENCAP_PATH} ${SCREENCAP}
+$ADB -d shell rm -f ${ADB_SCREENCAP_PATH}
 
 # Grab the length of the video in seconds
 DURATION=$( ffprobe ${SCREENCAP} -show_format 2>/dev/null | awk -F '=' '/^duration/ { print $2}' )
